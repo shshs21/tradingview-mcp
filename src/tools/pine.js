@@ -40,10 +40,11 @@ export function registerPineTools(server) {
     catch (err) { return jsonResult({ success: false, error: err.message }, true); }
   });
 
-  server.tool('pine_new', 'Create a new blank Pine Script', {
-    type: z.enum(['indicator', 'strategy', 'library']).describe('Type of script to create'),
-  }, async ({ type }) => {
-    try { return jsonResult(await core.newScript({ type })); }
+  server.tool('pine_new', 'Replace the Pine editor buffer with a blank template. WARNING: this does NOT create a new script. The editor stays bound to whatever script is currently open, so a later pine_save/pine_compile writes to THAT script. Refuses when the buffer holds real content unless force is set. To get a genuinely separate script, create it in the TradingView UI first.', {
+    type: z.enum(['indicator', 'strategy', 'library']).describe('Template to load'),
+    force: z.coerce.boolean().optional().describe('Discard a non-empty editor buffer anyway'),
+  }, async ({ type, force }) => {
+    try { return jsonResult(await core.newScript({ type, force })); }
     catch (err) { return jsonResult({ success: false, error: err.message }, true); }
   });
 

@@ -505,7 +505,7 @@ export async function smartCompile() {
   };
 }
 
-export async function newScript({ type }) {
+export async function newScript({ type, force }) {
   const editorReady = await ensurePineEditorOpen();
   if (!editorReady) throw new Error('Could not open Pine Editor.');
 
@@ -518,7 +518,23 @@ export async function newScript({ type }) {
 
   const template = templates[type] || templates.indicator;
 
-  // Simply set the source to a new template — this is the most reliable approach
+  // THIS DOES NOT CREATE A SCRIPT. It replaces the text of whatever script is
+  // currently open, and the editor stays bound to that script — so the next save
+  // writes THERE, not to a new script. Left unguarded this silently overwrites a
+  // saved script and reports success. Measured: it wrote a probe over a saved
+  // 107KB strategy and returned action:'new_script_created'.
+  const current = await evaluate(`(function() { var m = ${FIND_MONACO}; return m ? m.editor.getValue() : null; })()`);
+  if (current === null) throw new Error('Monaco editor not found. Ensure Pine Editor is open.');
+  const isDisposable = Object.values(templates).some(t => current.trim() === t.trim()) || current.trim().length < 200;
+  if (!isDisposable && !force) {
+    throw new Error(
+      `Refusing to replace the Pine editor buffer (${current.length} chars). This call does NOT ` +
+      `create a new script — it overwrites the text of the script currently open, and the editor ` +
+      `stays bound to it, so a later save/compile writes there. Create the new script in the ` +
+      `TradingView UI, or pass force:true if you really mean to discard this buffer.`
+    );
+  }
+
   const escaped = JSON.stringify(template);
   const set = await evaluate(`
     (function() {
@@ -531,7 +547,13 @@ export async function newScript({ type }) {
 
   if (!set) throw new Error('Monaco editor not found. Ensure Pine Editor is open.');
 
-  return { success: true, type, action: 'new_script_created', template: typeMap[type] };
+  return {
+    success: true, type, action: 'editor_buffer_replaced', template: typeMap[type],
+    replaced_chars: current.length,
+    warning: 'No script was created. The editor is still bound to the script that was open; ' +
+      'a save or compile will write to THAT script. Create a new script in the TradingView UI ' +
+      'if you need a separate target.',
+  };
 }
 
 export async function openScript({ name }) {

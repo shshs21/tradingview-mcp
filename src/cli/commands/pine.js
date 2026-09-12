@@ -77,10 +77,11 @@ register('pine', {
       handler: () => core.save(),
     }],
     ['new', {
-      description: 'Create a new blank Pine Script (indicator, strategy, library)',
+      description: 'Load a blank template into the editor buffer (does NOT create a script)',
+      options: { force: { type: 'boolean', description: 'Discard a non-empty editor buffer anyway' } },
       handler: (opts, positionals) => {
         const type = positionals[0] || 'indicator';
-        return core.newScript({ type });
+        return core.newScript({ type, force: !!opts.force });
       },
     }],
     ['open', {
