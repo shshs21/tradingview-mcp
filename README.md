@@ -4,6 +4,23 @@
 
 Personal AI assistant for your TradingView Desktop charts. Connects Claude Code to your locally running TradingView app via Chrome DevTools Protocol for AI-assisted chart analysis, Pine Script development, and workflow automation.
 
+> [!NOTE]
+> **This is a fork** of [tradesdontlie/tradingview-mcp](https://github.com/tradesdontlie/tradingview-mcp),
+> maintained at [shshs21/tradingview-mcp](https://github.com/shshs21/tradingview-mcp). It carries one
+> fix not yet upstream: `ELECTRON_RUN_AS_NODE` is stripped from TradingView's child environment.
+> Without it, `tv_launch` fails whenever the MCP server is hosted by an Electron app — notably
+> Claude Code in the VS Code extension host — because TradingView boots as a plain Node runtime
+> and rejects `--remote-debugging-port`. Offered upstream as
+> [PR #519](https://github.com/tradesdontlie/tradingview-mcp/pull/519).
+>
+> **Consequence for `tv_update`: it pulls from this fork, not from upstream.** It fast-forwards
+> `origin/main`, and on this clone `origin` is the fork, so it will report *up to date* even when
+> `tradesdontlie/tradingview-mcp` has moved on. To take their fixes:
+>
+> ```sh
+> git fetch upstream && git merge upstream/main
+> ```
+
 > [!WARNING]
 > **This tool is not affiliated with, endorsed by, or associated with TradingView Inc.** It interacts with your locally running TradingView Desktop application via Chrome DevTools Protocol. Review the [Disclaimer](#disclaimer) before use.
 
