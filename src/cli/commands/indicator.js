@@ -11,9 +11,21 @@ register('indicator', {
       options: {
         inputs: { type: 'string', short: 'i', description: 'JSON input overrides' },
       },
-      handler: (opts, positionals) => {
+      handler: async (opts, positionals) => {
         if (!positionals[0]) throw new Error('Indicator name required. Usage: tv indicator add "Volume"');
-        return chartCore.manageIndicator({ action: 'add', indicator: positionals.join(' '), inputs: opts.inputs });
+        const name = positionals.join(' ');
+        const r = await chartCore.manageIndicator({ action: 'add', indicator: name, inputs: opts.inputs });
+        if (r && r.success) return r;
+        // `createStudy` reaches TradingView's BUILT-IN registry only. A saved
+        // Pine script is not in it, so `createStudy` no-ops and reports
+        // new_study_count: 0 -- indistinguishable from a bad name. Measured:
+        // five failures on saved scripts and one success on a built-in.
+        // `addStudyFromSearch` is the DOM-click path that reaches the
+        // dialog's `My scripts` section; it already existed here, exposed as
+        // an MCP tool and never as a CLI subcommand, so the bridge -- which
+        // drives the CLI -- could not reach it.
+        const viaSearch = await indCore.addStudyFromSearch({ query: name });
+        return { ...viaSearch, fell_back_to_search: true, create_study_result: r };
       },
     }],
     ['remove', {
