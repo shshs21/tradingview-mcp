@@ -231,6 +231,14 @@ export async function check({ source }) {
   }
 
   const compiled = errors.length === 0;
+  // EVERY FIELD THE COMPILER SENT, NAMED (private_pinescriptTransformation
+  // AUDIT 4.244). This function read errors2 and warnings2 and dropped the
+  // rest, and the rest carried `imports` (each import's script page id as
+  // `chartId`) and `functions2` (every exported signature with its docs).
+  // A library was reported unlocatable for weeks while this response held
+  // its page id. So `imports` and `functions2` are returned as sent, and
+  // `result_fields` lists every key the response carried, read or not, so
+  // the next field nobody reads is at least visible.
   return {
     success: true,
     compiled,
@@ -239,6 +247,16 @@ export async function check({ source }) {
     errors: errors.length > 0 ? errors : undefined,
     warnings: warnings.length > 0 ? warnings : undefined,
     note: compiled ? 'Pine Script compiled successfully.' : undefined,
+    imports: inner?.imports ?? null,
+    functions2: inner?.functions2 ?? null,
+    result_fields: inner && typeof inner === 'object' ? Object.keys(inner).sort() : [],
+    // and the CONTENT of every other field (today `enums` and `types`), so a
+    // field is dropped by a reader's choice, never by this function's.
+    result_other: inner && typeof inner === 'object'
+      ? Object.fromEntries(Object.entries(inner).filter(([k]) =>
+          !['errors2', 'warnings2', 'imports', 'functions2'].includes(k)))
+      : {},
+    response_fields: result && typeof result === 'object' ? Object.keys(result).sort() : [],
   };
 }
 
