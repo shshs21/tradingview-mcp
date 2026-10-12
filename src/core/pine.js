@@ -6,32 +6,45 @@
 import { evaluate, evaluateAsync, getClient } from '../connection.js';
 
 // ── Monaco finder (injected into TV page) ──
-const FIND_MONACO = `
+// TradingView Desktop 3.4.1 keeps two '.monaco-editor.pine-editor-monaco' nodes:
+// a 0x0 stub with no React fiber, then the real editor. So every node is tried,
+// and the first whose fiber walk finds the editor wins, a visible one preferred.
+export const FIND_MONACO = `
   (function findMonacoEditor() {
-    var container = document.querySelector('.monaco-editor.pine-editor-monaco');
-    if (!container) return null;
-    var el = container;
-    var fiberKey;
-    for (var i = 0; i < 20; i++) {
-      if (!el) break;
-      fiberKey = Object.keys(el).find(function(k) { return k.startsWith('__reactFiber$'); });
-      if (fiberKey) break;
-      el = el.parentElement;
-    }
-    if (!fiberKey) return null;
-    var current = el[fiberKey];
-    for (var d = 0; d < 15; d++) {
-      if (!current) break;
-      if (current.memoizedProps && current.memoizedProps.value && current.memoizedProps.value.monacoEnv) {
-        var env = current.memoizedProps.value.monacoEnv;
-        if (env.editor && typeof env.editor.getEditors === 'function') {
-          var editors = env.editor.getEditors();
-          if (editors.length > 0) return { editor: editors[0], env: env };
-        }
+    function fromContainer(container) {
+      var el = container;
+      var fiberKey;
+      for (var i = 0; i < 20; i++) {
+        if (!el) break;
+        fiberKey = Object.keys(el).find(function(k) { return k.startsWith('__reactFiber$'); });
+        if (fiberKey) break;
+        el = el.parentElement;
       }
-      current = current.return;
+      if (!fiberKey) return null;
+      var current = el[fiberKey];
+      for (var d = 0; d < 15; d++) {
+        if (!current) break;
+        if (current.memoizedProps && current.memoizedProps.value && current.memoizedProps.value.monacoEnv) {
+          var env = current.memoizedProps.value.monacoEnv;
+          if (env.editor && typeof env.editor.getEditors === 'function') {
+            var editors = env.editor.getEditors();
+            if (editors.length > 0) return { editor: editors[0], env: env };
+          }
+        }
+        current = current.return;
+      }
+      return null;
     }
-    return null;
+    var containers = document.querySelectorAll('.monaco-editor.pine-editor-monaco');
+    var fallback = null;
+    for (var c = 0; c < containers.length; c++) {
+      var found = fromContainer(containers[c]);
+      if (!found) continue;
+      var rect = containers[c].getBoundingClientRect ? containers[c].getBoundingClientRect() : null;
+      if (rect && rect.width > 0 && rect.height > 0) return found;
+      if (!fallback) fallback = found;
+    }
+    return fallback;
   })()
 `;
 

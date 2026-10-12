@@ -136,7 +136,9 @@ export async function uiState() {
       ui.bottom_panel = { open: !!(bottom && bottom.offsetHeight > 50), height: bottom ? bottom.offsetHeight : 0 };
       var right = document.querySelector('[class*="layout__area--right"]');
       ui.right_panel = { open: !!(right && right.offsetWidth > 50), width: right ? right.offsetWidth : 0 };
-      var monacoEl = document.querySelector('.monaco-editor.pine-editor-monaco');
+      var monacoEls = document.querySelectorAll('.monaco-editor.pine-editor-monaco');
+      var monacoEl = monacoEls.length ? monacoEls[0] : null;
+      for (var m = 0; m < monacoEls.length; m++) { if (monacoEls[m].offsetWidth > 0 && monacoEls[m].offsetHeight > 0) { monacoEl = monacoEls[m]; break; } }
       ui.pine_editor = { open: !!monacoEl, width: monacoEl ? monacoEl.offsetWidth : 0, height: monacoEl ? monacoEl.offsetHeight : 0 };
       var stratPanel = document.querySelector('[data-name="backtesting"]') || document.querySelector('[class*="strategyReport"]');
       ui.strategy_tester = { open: !!(stratPanel && stratPanel.offsetParent) };
